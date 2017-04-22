@@ -8,6 +8,9 @@ import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.configuration.file.FileConfiguration;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -23,7 +26,7 @@ public class Game
     private int minPlayers;
     private int gameStartTime;
     private World world;
-    private Set<Location> spawnpoints;
+    private List<Location> spawnpoints;
     private FileConfiguration config;
     private Location lobbySpawnPoint;
 
@@ -58,7 +61,7 @@ public class Game
            Bukkit.getServer().getLogger().severe(ex.getLocalizedMessage());
        }
 
-
+        spawnpoints = new ArrayList<>();
         for(String point : config.getStringList("games." + gameName +".spawnPoints"))
         {
             String[] coords = point.split(",");
@@ -78,6 +81,8 @@ public class Game
             }
         }
         this.isTeamGame = config.getBoolean("games." + gameName + ".isTeamGame");
+        this.players = new HashSet<>();
+        this.spectators = new HashSet<>();
     }
     public boolean joinGame(GamePlayer gamePlayer)
     {
@@ -90,7 +95,7 @@ public class Game
         {
             getPlayers().add(gamePlayer);
             gamePlayer.teleport(isState(GameState.LOBBY) ? lobbySpawnPoint : null/*TODO : Teleport to a spawnpoint*/);
-            this.sendMessage("&a [+] &6 " + gamePlayer + "&7( &6" + getPlayers().size() + " &7/&6 " +getMaxPlayers() + "&7)");
+            this.sendMessage("&a [+] &6 " + gamePlayer.getName() + "&7( &6" + getPlayers().size() + " &7/&6 " +getMaxPlayers() + "&7)");
             if(getPlayers().size() == getMinPlayers())
             {
                 if(!isState(GameState.STARTING))

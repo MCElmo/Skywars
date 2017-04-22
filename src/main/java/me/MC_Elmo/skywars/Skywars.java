@@ -1,5 +1,6 @@
 package me.MC_Elmo.skywars;
 
+import me.MC_Elmo.skywars.listeners.PlayerJoin;
 import me.MC_Elmo.skywars.object.Game;
 import me.MC_Elmo.skywars.data.DataHandler;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -14,6 +15,7 @@ import java.util.Set;
 public class Skywars extends JavaPlugin
 {
     private Skywars instance;
+    private PlayerJoin playerJoin;
     private DataHandler dataHandler;
     private Set<Game> gameSet = new HashSet<>();
     private FileConfiguration config;
@@ -23,6 +25,8 @@ public class Skywars extends JavaPlugin
     {
         this.config = getConfig();
         this.instance = this;
+        playerJoin = new PlayerJoin(instance);
+        getServer().getPluginManager().registerEvents(playerJoin, this);
         this.dataHandler = new DataHandler(instance);
         config.options().copyDefaults(true);
         config.options().copyHeader(true);
@@ -35,9 +39,9 @@ public class Skywars extends JavaPlugin
         {
             gamesLimit = DataHandler.getGameInfo().getInt("max-games" , -1);
         }
-        if(dataHandler.getGameInfo().getConfigurationSection("games") != null)
+        if(DataHandler.getGameInfo().getConfigurationSection("games") != null)
         {
-            for (String gameName : dataHandler.getGameInfo().getConfigurationSection("games").getKeys(false))
+            for (String gameName : DataHandler.getGameInfo().getConfigurationSection("games").getKeys(false))
             {
                 Game game = new Game(gameName);
                 this.registerGame(game);
@@ -46,6 +50,8 @@ public class Skywars extends JavaPlugin
         {
             getLogger().warning("There were no games created. Please create a game to use this plugin.");
         }
+
+
     }
 
     @Override
@@ -63,6 +69,16 @@ public class Skywars extends JavaPlugin
         gameSet.add(game);
 
         return true;
+    }
+
+    public Game getGame(String gameName)
+    {
+        for(Game game: gameSet)
+        {
+            if(game.getDisplayName().equalsIgnoreCase(gameName))
+                return game;
+        }
+        return null;
     }
 
 }
