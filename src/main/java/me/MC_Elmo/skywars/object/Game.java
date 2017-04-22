@@ -18,7 +18,7 @@ public class Game
     private String displayName;
 
 
-
+//derp
     private int maxPlayers;
     private int minPlayers;
     private int gameStartTime;
