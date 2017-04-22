@@ -1,0 +1,7 @@
+games:
+   'Islands':
+      displayName: 'Islands'
+      maxPlayers: 8
+      minPlayers: 2
+      isTeamGame: false
+      spawnPoints: []

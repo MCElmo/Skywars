@@ -1,0 +1,4 @@
+# Optimal for Bungee
+single-server-mode: false
+#set to -1 for no limit
+max-games: -1
