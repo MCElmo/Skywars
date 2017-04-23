@@ -13,7 +13,7 @@ import java.io.IOException;
 public class DataHandler
 {
     private File gameInfoFile;
-    private static FileConfiguration gameInfo;
+    private FileConfiguration gameInfo;
     private DataHandler dataInstance;
 
 
@@ -35,19 +35,20 @@ public class DataHandler
 
 
 
-    public static FileConfiguration getGameInfo()
+    public FileConfiguration getGameInfo()
     {
         return gameInfo;
     }
 
-    public void saveGameInfo()
+    public boolean saveGameInfo()
     {
         try
         {
             this.gameInfo.save(this.gameInfoFile);
+            return true;
         } catch (IOException e)
         {
-            e.printStackTrace();
+            return false;
         }
     }
 }

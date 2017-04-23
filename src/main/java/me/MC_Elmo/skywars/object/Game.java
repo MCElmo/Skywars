@@ -1,6 +1,7 @@
 package me.MC_Elmo.skywars.object;
 
-import me.MC_Elmo.skywars.data.DataHandler;
+import me.MC_Elmo.skywars.Skywars;
+import me.MC_Elmo.skywars.tasks.GameCountdownTask;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -9,45 +10,60 @@ import org.bukkit.WorldCreator;
 import org.bukkit.configuration.file.FileConfiguration;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.logging.Logger;
 
 /**
  * Created by Elom on 4/20/17.
  */
 public class Game
 {
+    //Game Info
     private String displayName;
-
-
-//derp
     private int maxPlayers;
     private int minPlayers;
     private int gameStartTime;
     private World world;
+
+    //Class variables
+    private Skywars instance;
+    private FileConfiguration gameConfig;
+
     private List<Location> spawnpoints;
-    private FileConfiguration config;
+
     private Location lobbySpawnPoint;
 
     private Set<GamePlayer> players;
     private Set<GamePlayer> spectators;
+    private Map<GamePlayer, Location> playerSpawnPoints;
     private boolean isTeamGame;
     private GameState gameState;
+    private Logger logger;
 
-    public Game(String gameName)
+    public Game(Skywars instance, String gameName)
     {
-        config = DataHandler.getGameInfo();
-        this.displayName = config.getString("games." + gameName + ".displayName");
+        playerSpawnPoints = new HashMap<>();
+        this.instance = instance;
+        this.logger = instance.getLog();
+        gameConfig = instance.getGameConfig();
         gameState = GameState.LOBBY;
-        this.gameStartTime = config.getInt("games." + gameName + ".gameStartTime");
-        this.maxPlayers = config.getInt("games." + gameName + ".maxPlayers");
-        this.minPlayers = config.getInt("games." + gameName + ".minPlayers");
-        this.world = Bukkit.createWorld(new WorldCreator(config.getString("games." + gameName + ".worldName")));
+        initializeGameInfo(gameName);
+        setupSpawnPoints(gameName);
 
-       try
-       {
-           String lobbySpawnPoint = config.getString("games." + gameName + ".lobbySpawnPoint");
+        this.isTeamGame = gameConfig.getBoolean("games." + gameName + ".isTeamGame");
+        this.players = new HashSet<>();
+        this.spectators = new HashSet<>();
+    }
+
+    private void setupSpawnPoints(String gameName)
+    {
+        try
+        {
+            String lobbySpawnPoint = gameConfig.getString("games." + gameName + ".lobbySpawnPoint");
             String[] coords = lobbySpawnPoint.split(",");
             double x = Double.parseDouble(coords[0].split(":")[1]);
             double y = Double.parseDouble(coords[1].split(":")[1]);
@@ -55,14 +71,15 @@ public class Game
             float yaw = Float.parseFloat(coords[3].split(":")[1]);
             float pitch = Float.parseFloat(coords[4].split(":")[1]);
             this.lobbySpawnPoint = new Location(world,x,y,z, yaw,pitch);
+            logger.info("Set lobby spawnpoint to " + x + "," + y + "," + z);
         } catch (Exception ex)
-       {
-           Bukkit.getServer().getLogger().severe("Failed to load Lobby spawn point with data : " + lobbySpawnPoint+ " for game : " + gameName + "." );
-           Bukkit.getServer().getLogger().severe(ex.getLocalizedMessage());
-       }
+        {
+            logger.severe("Failed to load Lobby spawn point with data : " + lobbySpawnPoint+ " for game : " + gameName + "." );
+            logger.severe(ex.getLocalizedMessage());
+        }
 
         spawnpoints = new ArrayList<>();
-        for(String point : config.getStringList("games." + gameName +".spawnPoints"))
+        for(String point : gameConfig.getStringList("games." + gameName +".spawnPoints"))
         {
             String[] coords = point.split(",");
             double x = Double.parseDouble(coords[0].split(":")[1]);
@@ -76,14 +93,59 @@ public class Game
             try {
 
             } catch (Exception ex) {
-                Bukkit.getServer().getLogger().severe("Failed to load Spawnpoint with data : " + point + " for game : " + gameName + "." );
-                Bukkit.getServer().getLogger().severe(ex.getLocalizedMessage());
+                logger.severe("Failed to load Spawnpoint with data : " + point + " for game : " + gameName + "." );
+                logger.severe(ex.getLocalizedMessage());
             }
         }
-        this.isTeamGame = config.getBoolean("games." + gameName + ".isTeamGame");
-        this.players = new HashSet<>();
-        this.spectators = new HashSet<>();
+        if(spawnpoints.size() < maxPlayers)
+        {
+            logger.severe("Not enough spawnpoints in game : " + gameName + " to satisfy player limit. ");
+        }
     }
+
+
+    private void initializeGameInfo(String gameName)
+    {
+        try
+        {
+            this.displayName = gameConfig.getString("games." + gameName + ".displayName");
+        } catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+        try
+        {
+            this.gameStartTime = gameConfig.getInt("games." + gameName + ".gameStartTime");
+        } catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+        try
+        {
+            this.maxPlayers = gameConfig.getInt("games." + gameName + ".maxPlayers");
+        } catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+        try
+        {
+            this.minPlayers = gameConfig.getInt("games." + gameName + ".minPlayers");
+        } catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+        try
+        {
+            this.world = Bukkit.createWorld(new WorldCreator(gameConfig.getString("games." + gameName + ".worldName")));
+        } catch (Exception e)
+        {
+            e.printStackTrace();
+        }
+
+    }
+
+
+
     public boolean joinGame(GamePlayer gamePlayer)
     {
         if(getPlayers().size() == maxPlayers)
@@ -95,7 +157,7 @@ public class Game
         {
             getPlayers().add(gamePlayer);
             gamePlayer.teleport(isState(GameState.LOBBY) ? lobbySpawnPoint : null/*TODO : Teleport to a spawnpoint*/);
-            this.sendMessage("&a [+] &6 " + gamePlayer.getName() + "&7( &6" + getPlayers().size() + " &7/&6 " +getMaxPlayers() + "&7)");
+            this.sendMessage("&a [+] &6 " + gamePlayer.getName() + "&7(&6" + getPlayers().size() + " &7/&6 " +getMaxPlayers() + "&7)");
             if(getPlayers().size() == getMinPlayers())
             {
                 if(!isState(GameState.STARTING))
@@ -113,9 +175,28 @@ public class Game
         }
     }
 
-    private void startCountdown(int countTime)
+    private void startCountdown(int gameStartTime)
     {
+        int id = 0;
+        for (GamePlayer gamePlayer:
+             getPlayers())
+        {
+            try
+            {
+                playerSpawnPoints.put(gamePlayer,spawnpoints.get(id));
+                gamePlayer.teleport(spawnpoints.get(id));
+                id++;
+            } catch (Exception e)
+            {
+                e.printStackTrace();
+            }
+        }
         //TODO: Countdown
+       new GameCountdownTask(this,gameStartTime).runTaskTimer(instance,20,20);
+
+
+
+
     }
 
     public void setState(GameState state)

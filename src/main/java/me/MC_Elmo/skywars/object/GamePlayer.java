@@ -28,7 +28,9 @@ public class GamePlayer
     }
     public void teleport(Location location)
     {
-        player.teleport(location);
+
+        if(location != null)
+            player.teleport(location);
     }
 
     public enum GamePlayerState {
